@@ -397,6 +397,8 @@ void *Talk( void *talkSocket )
       if (queryPosInHtml != string::npos)
           templateHtml.replace(queryPosInHtml, 9, query);
       
+
+      // TODO: Replace {{results}} with actual search results.
       // Generate dummy results (replace with your real data if available)
       string resultsHtml;
       for (int i = 1; i <= 5; ++i) {
