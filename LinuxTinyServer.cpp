@@ -356,44 +356,110 @@ void *Talk( void *talkSocket )
       close(talkSocketid);
       return nullptr;
    }
+
+   if (path.find("/search") == 0) {
+      size_t queryPos = path.find("?q=");
+      string query;
+      if (queryPos != string::npos) {
+          query = path.substr(queryPos + 3);
+      }
+  
+      // Unencode %20 etc.
+      query = UnencodeUrlEncoding(query);
+  
+      string templatePath = string(RootDirectory) + "/search.html";
+      int templateFd = open(templatePath.c_str(), O_RDONLY);
+      if (templateFd < 0) {
+         FileNotFound(talkSocketid);
+         close(talkSocketid);
+         return nullptr;
+      }
+
+      off_t templateSize = FileSize(templateFd);
+      if (templateSize < 0) {
+         AccessDenied(talkSocketid);
+         close(templateFd);
+         close(talkSocketid);
+         return nullptr;
+      }
+
+      char *templateBuffer = new char[templateSize + 1];
+      ssize_t bytesRead = read(templateFd, templateBuffer, templateSize);
+      templateBuffer[bytesRead] = '\0'; // null-terminate
+
+      close(templateFd);
+
+      string templateHtml(templateBuffer);
+      delete[] templateBuffer;
+      
+      // Replace {{query}} in template
+      size_t queryPosInHtml = templateHtml.find("{{query}}");
+      if (queryPosInHtml != string::npos)
+          templateHtml.replace(queryPosInHtml, 9, query);
+      
+      // Generate dummy results (replace with your real data if available)
+      string resultsHtml;
+      for (int i = 1; i <= 5; ++i) {
+          string resultUrl = "/doc" + to_string(i) + ".html";  // example
+          resultsHtml += "<li><a href=\"" + resultUrl + "\">Result " + to_string(i) + " for '" + query + "'</a></li>\n";
+      }
+      
+      // Replace {{results}} in template
+      size_t resultsPos = templateHtml.find("{{results}}");
+      if (resultsPos != string::npos)
+          templateHtml.replace(resultsPos, 11, resultsHtml);
+      
+      // Send HTTP response
+      string header = "HTTP/1.1 200 OK\r\n"
+                      "Content-Type: text/html\r\n"
+                      "Content-Length: " + to_string(templateHtml.length()) + "\r\n"
+                      "Connection: close\r\n\r\n";
+      
+      send(talkSocketid, header.c_str(), header.length(), 0);
+      send(talkSocketid, templateHtml.c_str(), templateHtml.length(), 0);
+      close(talkSocketid);
+      return nullptr;
+   }
        
    // If the path refers to a directory, access denied.
    // If the path refers to a file, write it to the socket.
-   string fullPath = string(RootDirectory) + path;
+   else{
+      string fullPath = string(RootDirectory) + path;
 
-   int file = open(fullPath.c_str(), O_RDONLY);
-   if (file < 0) {
-      FileNotFound(talkSocketid);
-      close(talkSocketid);
-      return nullptr;
-   }
+      int file = open(fullPath.c_str(), O_RDONLY);
+      if (file < 0) {
+         FileNotFound(talkSocketid);
+         close(talkSocketid);
+         return nullptr;
+      }
 
-   off_t size = FileSize(file);
-   if (size < 0) {
-      AccessDenied(talkSocketid);
+      off_t size = FileSize(file);
+      if (size < 0) {
+         AccessDenied(talkSocketid);
+         close(file);
+         close(talkSocketid);
+         return nullptr;
+      }
+      // Send HTTP header
+      string header = "HTTP/1.1 200 OK\r\n"
+                     "Content-Type: " + string(Mimetype(fullPath)) + "\r\n"
+                     "Content-Length: " + to_string(size) + "\r\n"
+                     "Connection: close\r\n\r\n";
+      
+      send(talkSocketid, header.c_str(), header.length(), 0);
+
+      // Send file content
+      char fileBuffer[8192];
+      ssize_t bytes;
+      while ((bytes = read(file, fileBuffer, sizeof(fileBuffer))) > 0) {
+         send(talkSocketid, fileBuffer, bytes, 0);
+      }
+
       close(file);
       close(talkSocketid);
       return nullptr;
+      // Close the socket and return nullptr.
    }
-   // Send HTTP header
-   string header = "HTTP/1.1 200 OK\r\n"
-                  "Content-Type: " + string(Mimetype(fullPath)) + "\r\n"
-                  "Content-Length: " + to_string(size) + "\r\n"
-                  "Connection: close\r\n\r\n";
-   
-   send(talkSocketid, header.c_str(), header.length(), 0);
-
-   // Send file content
-   char fileBuffer[8192];
-   ssize_t bytes;
-   while ((bytes = read(file, fileBuffer, sizeof(fileBuffer))) > 0) {
-      send(talkSocketid, fileBuffer, bytes, 0);
-   }
-
-   close(file);
-   close(talkSocketid);
-   return nullptr;
-   // Close the socket and return nullptr.
 
 }
 
@@ -462,6 +528,10 @@ int main( int argc, char **argv )
 
    // TO DO:  Bind the listen socket to the IP address and protocol
    // where we'd like to listen for connections.
+   int enable = 1;
+   if (setsockopt(listenSocket, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable)) < 0) {
+      perror("setsockopt(SO_REUSEADDR) failed");
+   }
    if (::bind(listenSocket, (struct sockaddr *)&listenAddress, sizeof(listenAddress)) < 0) {
       cerr << "Failed to bind socket" << endl;
       close(listenSocket);
