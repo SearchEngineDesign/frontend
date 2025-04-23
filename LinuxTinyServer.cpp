@@ -30,10 +30,11 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <iostream>
-#include <string.h>
-#include <string>
+// #include <string.h>
+// #include <string>
 #include <cassert>
-using namespace std;
+#include "../utils/searchstring.h"
+// using namespace std;
 
 
  // The constructor for any plugin should set Plugin = this so that
@@ -41,6 +42,7 @@ using namespace std;
 
 #include "Plugin.h"
 PluginObject *Plugin = nullptr;
+const size_t npos = -1;
 
 
 // Root directory for the website, taken from argv[ 2 ].
@@ -128,6 +130,42 @@ const MimetypeMap MimeTable[ ] =
    ".zip",     "application/zip"
    };
 
+inline void reverse_string(string& str) 
+{
+if (str.empty()) return;
+size_t left = 0;
+size_t right = str.size() - 1;
+while (left < right) 
+   {
+      // Swap characters at left and right positions
+      char temp = str[left];
+      str[left] = str[right];
+      str[right] = temp;
+      // Move inward from both ends
+      ++left;
+      --right;
+   }
+}   
+
+string to_string(int n)
+   {
+   if (n == 0) return "0";
+   bool negative = n < 0;
+   string temp;
+   if (negative) n = -n;
+   while (n > 0) 
+      {
+      temp.push_back( (char)(n % 10 + '0') );
+      n /= 10;
+      }
+   if (negative) 
+      temp.push_back('-');
+   reverse_string( temp );
+   return temp;
+   }
+   
+
+
 
 const char *Mimetype( const string filename )
    {
@@ -137,8 +175,8 @@ const char *Mimetype( const string filename )
    // Anything not matched is an "octet-stream", treated
    // as an unknown binary, which can be downloaded.
 
-   size_t dotPos = filename.find_last_of(".");
-   if (dotPos != string::npos) {
+   size_t dotPos = filename.find_last_of('.');
+   if (dotPos != npos) {
       string ext = filename.substr(dotPos);
       // Binary search through MimeTable
       int left = 0;
@@ -285,7 +323,7 @@ void AccessDenied( int talkSocket )
          "Content-Length: 0\r\n"
          "Connection: close\r\n\r\n";
 
-   cout << accessDenied;
+   std::cout << accessDenied;
    send( talkSocket, accessDenied, sizeof( accessDenied ) - 1, 0 );
    }
 
@@ -296,7 +334,7 @@ void FileNotFound( int talkSocket )
          "Content-Length: 0\r\n"
          "Connection: close\r\n\r\n";
 
-   cout << fileNotFound;
+   std::cout << fileNotFound;
    send( talkSocket, fileNotFound, sizeof( fileNotFound ) - 1, 0 );
    }
 
@@ -323,10 +361,10 @@ void *Talk( void *talkSocket )
 
    // Parse the request
    string request(buffer);
-   size_t firstSpace = request.find(' ');
-   size_t secondSpace = request.find(' ', firstSpace + 1);
+   size_t firstSpace = request.find(" ");
+   size_t secondSpace = request.find(" ", firstSpace + 1);
    
-   if (firstSpace == string::npos || secondSpace == string::npos) {
+   if (firstSpace == npos || secondSpace == npos) {
       AccessDenied(talkSocketid);
       close(talkSocketid);
       return nullptr;
@@ -360,7 +398,7 @@ void *Talk( void *talkSocket )
    if (path.find("/search") == 0) {
       size_t queryPos = path.find("?q=");
       string query;
-      if (queryPos != string::npos) {
+      if (queryPos != npos) {
           query = path.substr(queryPos + 3);
       }
   
@@ -394,28 +432,37 @@ void *Talk( void *talkSocket )
       
       // Replace {{query}} in template
       size_t queryPosInHtml = templateHtml.find("{{query}}");
-      if (queryPosInHtml != string::npos)
-          templateHtml.replace(queryPosInHtml, 9, query);
-      
+      if (queryPosInHtml != npos) {
+          string before = templateHtml.substr(0, queryPosInHtml);
+          string after = templateHtml.substr(queryPosInHtml + 9, templateHtml.size() - (queryPosInHtml + 9)); // 9 is length of {{query}}
+          templateHtml = before + query + after;
+          //templateHtml.replace(queryPosInHtml, 9, query);
+      }
 
       // TODO: Replace {{results}} with actual search results.
       // Generate dummy results (replace with your real data if available)
+
+
       string resultsHtml;
       for (int i = 1; i <= 5; ++i) {
-          string resultUrl = "/doc" + to_string(i) + ".html";  // example
-          resultsHtml += "<li><a href=\"" + resultUrl + "\">Result " + to_string(i) + " for '" + query + "'</a></li>\n";
+          string resultUrl = (string)"/doc" + to_string(i) + (string)".html";  // example
+          resultsHtml += (string)"<li><a href=\"" + resultUrl + 
+          (string)"\">Result " + to_string(i) + (string)" for '" + query + (string)"'</a></li>\n";
       }
       
       // Replace {{results}} in template
       size_t resultsPos = templateHtml.find("{{results}}");
-      if (resultsPos != string::npos)
-          templateHtml.replace(resultsPos, 11, resultsHtml);
-      
+      if (resultsPos != npos) {
+          string before = templateHtml.substr(0, resultsPos);
+          string after = templateHtml.substr(resultsPos + 11, templateHtml.size() - (resultsPos + 11)); // 11 is length of {{results}}
+          templateHtml = before + resultsHtml + after;
+          //templateHtml.replace(resultsPos, 11, resultsHtml);
+      }
       // Send HTTP response
-      string header = "HTTP/1.1 200 OK\r\n"
-                      "Content-Type: text/html\r\n"
-                      "Content-Length: " + to_string(templateHtml.length()) + "\r\n"
-                      "Connection: close\r\n\r\n";
+      string header = (string)"HTTP/1.1 200 OK\r\n" +
+                      (string)"Content-Type: text/html\r\n" +
+                      (string)"Content-Length: " + to_string(templateHtml.length()) + "\r\n" +
+                      (string)"Connection: close\r\n\r\n";
       
       send(talkSocketid, header.c_str(), header.length(), 0);
       send(talkSocketid, templateHtml.c_str(), templateHtml.length(), 0);
@@ -443,10 +490,10 @@ void *Talk( void *talkSocket )
          return nullptr;
       }
       // Send HTTP header
-      string header = "HTTP/1.1 200 OK\r\n"
-                     "Content-Type: " + string(Mimetype(fullPath)) + "\r\n"
-                     "Content-Length: " + to_string(size) + "\r\n"
-                     "Connection: close\r\n\r\n";
+      string header = (string)"HTTP/1.1 200 OK\r\n" +
+                     (string)"Content-Type: " + string(Mimetype(fullPath)) + "\r\n" +
+                     (string)"Content-Length: " + to_string(size) + "\r\n" +
+                     (string)"Connection: close\r\n\r\n";
       
       send(talkSocketid, header.c_str(), header.length(), 0);
 
@@ -471,7 +518,7 @@ int main( int argc, char **argv )
    {
    if ( argc != 3 )
       {
-      cerr << "Usage:  " << argv[ 0 ] << " port rootdirectory" << endl;
+      std::cerr << "Usage:  " << argv[ 0 ] << " port rootdirectory" << std::endl;
       return 1;
       }
 
@@ -524,7 +571,7 @@ int main( int argc, char **argv )
    // it as a stream of bytes using TCP/IP.
    listenSocket = socket(AF_INET, SOCK_STREAM, 0);
    if (listenSocket < 0) {
-      cerr << "Failed to create listen socket" << endl;
+      std::cerr << "Failed to create listen socket" << std::endl;
       return 1;
    }
 
@@ -535,7 +582,7 @@ int main( int argc, char **argv )
       perror("setsockopt(SO_REUSEADDR) failed");
    }
    if (::bind(listenSocket, (struct sockaddr *)&listenAddress, sizeof(listenAddress)) < 0) {
-      cerr << "Failed to bind socket" << endl;
+      std::cerr << "Failed to bind socket" << std::endl;
       close(listenSocket);
       return 1;
    }
@@ -552,7 +599,7 @@ int main( int argc, char **argv )
    // in /usr/include/x86_64-linux-gnu/bits/socket.h.)
 
    if (listen(listenSocket, SOMAXCONN) < 0) {
-      cerr << "Failed to listen on socket" << endl;
+      std::cerr << "Failed to listen on socket" << std::endl;
       close(listenSocket);
       return 1;
    }
@@ -563,7 +610,7 @@ int main( int argc, char **argv )
    while (true) {
       talkSocket = accept(listenSocket, (struct sockaddr *)&talkAddress, &talkAddressLength);
       if (talkSocket < 0) {
-         cerr << "Failed to accept connection" << endl;
+         std::cerr << "Failed to accept connection" << std::endl;
          continue;
       }
 
@@ -571,7 +618,7 @@ int main( int argc, char **argv )
       int *socketPtr = new int(talkSocket);
       pthread_t thread;
       if (pthread_create(&thread, nullptr, Talk, socketPtr) != 0) {
-         cerr << "Failed to create thread" << endl;
+         std::cerr << "Failed to create thread" << std::endl;
          delete socketPtr;
          close(talkSocket);
          continue;
