@@ -42,7 +42,7 @@
 
 #include "Plugin.h"
 PluginObject *Plugin = nullptr;
-const size_t npos = -1;
+const int npos = -1;
 
 
 // Root directory for the website, taken from argv[ 2 ].
@@ -273,6 +273,7 @@ string UnencodeUrlEncoding( string &path )
 bool SafePath( const char *path )
    {
    // The path must start with a /.
+   std::cout << "SafePath: " << path << std::endl;
    if ( *path != '/' )
       return false;
 
@@ -363,6 +364,8 @@ void *Talk( void *talkSocket )
    string request(buffer);
    size_t firstSpace = request.find(" ");
    size_t secondSpace = request.find(" ", firstSpace + 1);
+   std::cout << firstSpace << " " << secondSpace << std::endl;
+   std::cout << request << std::endl;
    
    if (firstSpace == npos || secondSpace == npos) {
       AccessDenied(talkSocketid);
@@ -372,7 +375,9 @@ void *Talk( void *talkSocket )
 
    string action = request.substr(0, firstSpace);
    string path = request.substr(firstSpace + 1, secondSpace - firstSpace - 1);
-   path = UnencodeUrlEncoding(path);
+   std::cout << "path: " << path << std::endl;
+   // path = UnencodeUrlEncoding(path);
+   std::cout << "path after encoding: " << path << std::endl;
 
 
    // Check to see if there's a plugin and, if there is,
@@ -388,8 +393,9 @@ void *Talk( void *talkSocket )
    }
    // If it isn't intercepted, action must be "GET" and
    // the path must be safe.
-
-   if (action != "GET" || !SafePath(path.c_str())) {
+   std::cout << "action: " << action << std::endl;
+   if (action != (string)"GET" || !SafePath(path.c_str())) {
+      std::cout << "Access denied" << std::endl;
       AccessDenied(talkSocketid);
       close(talkSocketid);
       return nullptr;
