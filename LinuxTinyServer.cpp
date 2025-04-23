@@ -402,6 +402,9 @@ void *Talk( void *talkSocket )
       string query;
       if (queryPos != npos) {
           query = path.substr(queryPos + 3);
+          for (int i = 0; i < query.size(); i++)
+            if(query[i] == '+')
+               query[i] = ' ';
       }
   
       // Unencode %20 etc.
