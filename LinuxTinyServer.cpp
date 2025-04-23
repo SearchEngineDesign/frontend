@@ -35,6 +35,7 @@
 #include <cassert>
 #include "../utils/searchstring.h"
 #include "../utils/vector.h"
+#include "../ranking/driver.h"
 // using namespace std;
 
 
@@ -450,9 +451,9 @@ void *Talk( void *talkSocket )
 
 
       string resultsHtml;
-      for (int i = 1; i <= 5; ++i) {
-          string resultUrl = (string)"/doc" + to_string(i) + (string)".html";  // example
-          resultsHtml += (string)"<li><a href=\"" + resultUrl + 
+      for (int i = 0; i < urls.size(); ++i) {
+           // example
+          resultsHtml += (string)"<li><a href=\"" + urls[i] + 
           (string)"\">Result " + to_string(i) + (string)" for '" + query + (string)"'</a></li>\n";
       }
       
