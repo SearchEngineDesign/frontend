@@ -34,6 +34,7 @@
 // #include <string>
 #include <cassert>
 #include "../utils/searchstring.h"
+#include "../utils/vector.h"
 // using namespace std;
 
 
@@ -273,7 +274,6 @@ string UnencodeUrlEncoding( string &path )
 bool SafePath( const char *path )
    {
    // The path must start with a /.
-   std::cout << "SafePath: " << path << std::endl;
    if ( *path != '/' )
       return false;
 
@@ -364,8 +364,6 @@ void *Talk( void *talkSocket )
    string request(buffer);
    size_t firstSpace = request.find(" ");
    size_t secondSpace = request.find(" ", firstSpace + 1);
-   std::cout << firstSpace << " " << secondSpace << std::endl;
-   std::cout << request << std::endl;
    
    if (firstSpace == npos || secondSpace == npos) {
       AccessDenied(talkSocketid);
@@ -375,9 +373,7 @@ void *Talk( void *talkSocket )
 
    string action = request.substr(0, firstSpace);
    string path = request.substr(firstSpace + 1, secondSpace - firstSpace - 1);
-   std::cout << "path: " << path << std::endl;
    // path = UnencodeUrlEncoding(path);
-   std::cout << "path after encoding: " << path << std::endl;
 
 
    // Check to see if there's a plugin and, if there is,
@@ -393,7 +389,6 @@ void *Talk( void *talkSocket )
    }
    // If it isn't intercepted, action must be "GET" and
    // the path must be safe.
-   std::cout << "action: " << action << std::endl;
    if (action != (string)"GET" || !SafePath(path.c_str())) {
       std::cout << "Access denied" << std::endl;
       AccessDenied(talkSocketid);
@@ -409,7 +404,7 @@ void *Talk( void *talkSocket )
       }
   
       // Unencode %20 etc.
-      query = UnencodeUrlEncoding(query);
+      // query = UnencodeUrlEncoding(query);
   
       string templatePath = string(RootDirectory) + "/search.html";
       int templateFd = open(templatePath.c_str(), O_RDONLY);
@@ -447,6 +442,11 @@ void *Talk( void *talkSocket )
 
       // TODO: Replace {{results}} with actual search results.
       // Generate dummy results (replace with your real data if available)
+
+      // input: string query
+      // output: vector of string urls
+      // title? 
+      vector<string> urls = results(query);
 
 
       string resultsHtml;
