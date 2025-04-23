@@ -454,7 +454,7 @@ void *Talk( void *talkSocket )
       for (int i = 0; i < urls.size(); ++i) {
            // example
           resultsHtml += (string)"<li><a href=\"" + urls[i] + 
-          (string)"\">Result " + to_string(i) + (string)" for '" + query + (string)"'</a></li>\n";
+          (string)"\">Result " + to_string(i) + (string)" for '" + query + (string)"': "+ urls[i] + (string)" </a></li>\n";
       }
       
       // Replace {{results}} in template
