@@ -447,7 +447,7 @@ void *Talk( void *talkSocket )
       // input: string query
       // output: vector of string urls
       // title? 
-      vector<string> urls = results(query);
+      vector<string> urls = getResults(query);
 
 
       string resultsHtml;
