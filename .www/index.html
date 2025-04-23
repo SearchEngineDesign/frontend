@@ -3,15 +3,19 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="A modern search engine interface">
   <title>My Search Engine</title>
   <link rel="stylesheet" href="style/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Search</h1>
-  <form action="/search" method="get">
-    <input type="text" name="q" id="query" placeholder="Enter your query..." required autofocus/>
-    <button type="submit">Search</button>
-  </form>
+  <div class="container">
+    <h1>Search</h1>
+    <form action="/search" method="get">
+      <input type="text" name="q" id="query" placeholder="Enter your query..." required autofocus/>
+      <button type="submit">Search</button>
+    </form>
+  </div>
 <script src="stylize.js"></script>
 </body>
 </html>
