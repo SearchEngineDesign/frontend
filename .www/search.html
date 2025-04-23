@@ -1,9 +1,21 @@
 <html>
-<head><title>Search Result</title></head>
+<head>
+  <title>Search Result</title>
+  <link rel="stylesheet" href="style/style.css">
+</head>
 <body>
-  <h1>Results for: {{query}}</h1>
-  <ul>
-    {{results}}
-  </ul>
+  <div class="left">
+    <h1>🔍 Search</h1>
+    <form action="/search" method="get">
+      <input type="text" name="q" id="query" placeholder="Enter your query..." required autofocus/>
+      <button type="submit">Search</button>
+    </form>
+  </div> 
+  <div class="right">
+    <h1>Results for: {{query}}</h1>
+    <ul>
+      {{results}}
+    </ul>
+  </div> 
 </body>
 </html>
