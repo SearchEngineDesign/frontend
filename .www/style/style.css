@@ -19,4 +19,9 @@ button {
 .right {
   float: right;
   max-width: 40%;
+  padding-right: 20%;
+}
+li {
+  list-style-type: none;
+  padding-bottom: 40px;
 }
