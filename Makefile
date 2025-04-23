@@ -6,7 +6,7 @@ CXXFLAGS = -Wall -O2 -std=c++17 -pthread
 ISR_DIR = ../isr
 INDEX_DIR = ../index
 UTILS_DIR = ../utils
-RANK_DIR = ../ranking
+RANK_DIR = ../dynamicRanker
 
 # Source Files
 SRCS = $(RANK_DIR)/driver.cpp \

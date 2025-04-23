@@ -1,0 +1,13 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 2rem;
+}
+input[type="text"] {
+  padding: 0.5rem;
+  font-size: 1rem;
+  width: 300px;
+}
+button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+}

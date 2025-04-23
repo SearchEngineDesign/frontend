@@ -35,7 +35,7 @@
 #include <cassert>
 #include "../utils/searchstring.h"
 #include "../utils/vector.h"
-#include "../ranking/driver.h"
+#include "../dynamicRanker/driver.h"
 // using namespace std;
 
 
@@ -615,6 +615,7 @@ int main( int argc, char **argv )
    // the client over the new talk socket that's created by Linux
    // when we accept the connection.
    while (true) {
+      std::cout << "waiting for accept..." << std::endl;
       talkSocket = accept(listenSocket, (struct sockaddr *)&talkAddress, &talkAddressLength);
       if (talkSocket < 0) {
          std::cerr << "Failed to accept connection" << std::endl;
