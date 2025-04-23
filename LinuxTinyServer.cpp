@@ -447,8 +447,9 @@ void *Talk( void *talkSocket )
       // input: string query
       // output: vector of string urls
       // title? 
+      char * p = query.c_str();
+      for ( ; *p; ++p) *p = tolower(*p);
       vector<string> urls = getResults(query);
-
 
       string resultsHtml;
       for (int i = 0; i < urls.size(); ++i) {
