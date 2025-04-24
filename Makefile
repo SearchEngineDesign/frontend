@@ -6,31 +6,39 @@ CXXFLAGS = -Wall -O2 -std=c++17 -pthread
 ISR_DIR = ../isr
 INDEX_DIR = ../index
 UTILS_DIR = ../utils
-RANK_DIR = ../ranking
+QUERY_COMPILER_DIR = ../queryCompiler
+UTF8PROC_DIR = ../index/stemmer/utf8proc
 
 # Source Files
-SRCS = $(RANK_DIR)/driver.cpp \
-       $(RANK_DIR)/heuristics.cpp \
+SRCS = ../dynamicRanker/driver.cpp \
+       ../dynamicRanker/heuristics.cpp \
        $(ISR_DIR)/isr.cpp \
        $(ISR_DIR)/isrHandler.cpp \
        $(INDEX_DIR)/index.cpp \
        $(UTILS_DIR)/Utf8.cpp \
        $(UTILS_DIR)/IndexBlob.cpp \
        $(UTILS_DIR)/searchstring.cpp \
+		 $(QUERY_COMPILER_DIR)/compiler.cpp \
+		 $(QUERY_COMPILER_DIR)/tokenstream.cpp \
+		 ../index/stemmer/stemmer.cpp \
 		 LinuxTinyServer.cpp
+
 
 # Object Files
 OBJS = $(SRCS:.cpp=.o)
 
+# Library Flags
+LDFLAGS = -L$(UTF8PROC_DIR) -Wl,-rpath,$(UTF8PROC_DIR) -lutf8proc
+
 # Target Executable
-TARGET = server
+TARGET = driver
 
 # Default Target
 all: $(TARGET)
 
 # Build the target executable
 $(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Compile source files to object files
 %.o: %.cpp
