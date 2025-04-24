@@ -9,6 +9,7 @@ UTILS_DIR = ../utils
 QUERY_COMPILER_DIR = ../queryCompiler
 UTF8PROC_DIR = ../index/stemmer/utf8proc
 
+
 # Source Files
 SRCS = ../dynamicRanker/driver.cpp \
        ../dynamicRanker/heuristics.cpp \
@@ -31,7 +32,7 @@ OBJS = $(SRCS:.cpp=.o)
 LDFLAGS = -L$(UTF8PROC_DIR) -Wl,-rpath,$(UTF8PROC_DIR) -lutf8proc
 
 # Target Executable
-TARGET = driver
+TARGET = server
 
 # Default Target
 all: $(TARGET)

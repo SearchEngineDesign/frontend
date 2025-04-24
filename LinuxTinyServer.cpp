@@ -35,7 +35,7 @@
 #include <cassert>
 #include "../utils/searchstring.h"
 #include "../utils/vector.h"
-#include "../ranking/driver.h"
+#include "../dynamicRanker/driver.h"
 // using namespace std;
 
 
@@ -402,6 +402,9 @@ void *Talk( void *talkSocket )
       string query;
       if (queryPos != npos) {
           query = path.substr(queryPos + 3);
+          for (int i = 0; i < query.size(); i++)
+            if(query[i] == '+')
+               query[i] = ' ';
       }
   
       // Unencode %20 etc.
@@ -447,14 +450,17 @@ void *Talk( void *talkSocket )
       // input: string query
       // output: vector of string urls
       // title? 
+      char * p = query.c_str();
+      for ( ; *p; ++p) *p = tolower(*p);
       vector<string> urls = getResults(query);
-
 
       string resultsHtml;
       for (int i = 0; i < urls.size(); ++i) {
            // example
-          resultsHtml += (string)"<li><a href=\"" + urls[i] + 
-          (string)"\">Result " + to_string(i) + (string)" for '" + query + (string)"': "+ urls[i] + (string)" </a></li>\n";
+         resultsHtml += (string)"<li><a href=\"" + urls[i] + 
+          (string)"\">" + urls[i] + (string)" </a></li>\n\n";
+         //resultsHtml += (string)"<li><a href=\"" + urls[i] + 
+         //(string)"\">Result " + to_string(i) + (string)" for '" + query + (string)"': "+ urls[i] + (string)" </a></li>\n";
       }
       
       // Replace {{results}} in template
@@ -615,6 +621,7 @@ int main( int argc, char **argv )
    // the client over the new talk socket that's created by Linux
    // when we accept the connection.
    while (true) {
+      std::cout << "waiting for accept..." << std::endl;
       talkSocket = accept(listenSocket, (struct sockaddr *)&talkAddress, &talkAddressLength);
       if (talkSocket < 0) {
          std::cerr << "Failed to accept connection" << std::endl;
