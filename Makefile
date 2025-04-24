@@ -22,7 +22,7 @@ SRCS = ../dynamicRanker/driver.cpp \
 		 $(QUERY_COMPILER_DIR)/compiler.cpp \
 		 $(QUERY_COMPILER_DIR)/tokenstream.cpp \
 		 ../index/stemmer/stemmer.cpp \
-		 LinuxTinyServer.cpp
+		 server.cpp
 
 
 # Object Files

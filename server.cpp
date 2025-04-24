@@ -1,26 +1,3 @@
-// Linux tiny HTTP server.
-// Nicole Hamilton  nham@umich.edu
-
-// This variation of LinuxTinyServer supports a simple plugin interface
-// to allow "magic paths" to be intercepted.  (But the autograder will
-// not test this feature.)
-
-// Usage:  LinuxTinyServer port rootdirectory
-
-// Compile with g++ -pthread LinuxTinyServer.cpp -o LinuxTinyServer
-// To run under WSL (Windows Subsystem for Linux), may have to elevate
-// with sudo if the bind fails.
-
-// LinuxTinyServer does not look for default index.htm or similar
-// files.  If it receives a GET request on a directory, it will refuse
-// it, returning an HTTP 403 error, access denied.
-
-// It also does not support HTTP Connection: keep-alive requests and
-// will close the socket at the end of each response.  This is a
-// perf issue, forcing the client browser to reconnect for each
-// request and a candidate for improvement.
-
-
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -36,11 +13,6 @@
 #include "../utils/searchstring.h"
 #include "../utils/vector.h"
 #include "../dynamicRanker/driver.h"
-// using namespace std;
-
-
- // The constructor for any plugin should set Plugin = this so that
- // LinuxTinyServer knows it exists and can call it.
 
 #include "Plugin.h"
 PluginObject *Plugin = nullptr;
