@@ -7,6 +7,7 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <iostream>
+#include <ctime>
 
 #include <cassert>
 #include "../utils/searchstring.h"
@@ -24,9 +25,9 @@ string StylizedResults(vector<string> &urls) {
    string resultsHtml = "";
    Crawler c;
    for (auto &url : urls) {
-      std::cout << url << std::endl;
+      
       resultsHtml += string("<li><a href=\"") + url + string("\">");
-      auto pUrl = ParsedUrl(url);
+      /*auto pUrl = ParsedUrl(url);
       auto buffer = std::make_unique<char[]>(1000000);
       size_t pageSize = 0;
       try {
@@ -37,7 +38,8 @@ string StylizedResults(vector<string> &urls) {
          resultsHtml += string(" </a><br>") + url + string("</li>\n\n");
       } catch (std::runtime_error &e) {
          continue;
-      }
+      }*/
+      resultsHtml += string("placeholder title</a><br>") + url + string("</li>\n\n");
    }
    return resultsHtml;
 }
@@ -447,16 +449,18 @@ void *Talk( void *talkSocket )
       // title? 
       char * p = query.c_str();
       for ( ; *p; ++p) *p = tolower(*p);
+      
+      auto start = std::clock();
       vector<string> urls = getResults(query);
-
       string resultsHtml = StylizedResults(urls);
+      double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
       
       // Replace {{results}} in template
       size_t resultsPos = templateHtml.find("{{results}}");
       if (resultsPos != npos) {
           string before = templateHtml.substr(0, resultsPos);
           string after = templateHtml.substr(resultsPos + 11, templateHtml.size() - (resultsPos + 11)); // 11 is length of {{results}}
-          templateHtml = before + resultsHtml + after;
+          templateHtml = before + string(std::to_string(duration).c_str()) + string(" seconds taken.") + resultsHtml + after;
           //templateHtml.replace(resultsPos, 11, resultsHtml);
       }
       // Send HTTP response
