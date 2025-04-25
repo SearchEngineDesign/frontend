@@ -7,17 +7,40 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <iostream>
-// #include <string.h>
-// #include <string>
+
 #include <cassert>
 #include "../utils/searchstring.h"
 #include "../utils/vector.h"
 #include "../dynamicRanker/driver.h"
+#include "../Crawler/crawler.h"
+
 
 #include "Plugin.h"
 PluginObject *Plugin = nullptr;
 const int npos = -1;
 
+
+string StylizedResults(vector<string> &urls) {
+   string resultsHtml = "";
+   Crawler c;
+   for (auto &url : urls) {
+      std::cout << url << std::endl;
+      resultsHtml += string("<li><a href=\"") + url + string("\">");
+      auto pUrl = ParsedUrl(url);
+      auto buffer = std::make_unique<char[]>(1000000);
+      size_t pageSize = 0;
+      try {
+         c.crawl(pUrl, buffer.get(), pageSize);
+         auto parser = std::make_unique<HtmlParser>(buffer.get(), pageSize);
+         for (int i = 0; i < parser->titleWords.size(); i++)
+            resultsHtml += parser->titleWords[i] + string(" ");
+         resultsHtml += string(" </a><br>") + url + string("</li>\n\n");
+      } catch (std::runtime_error &e) {
+         continue;
+      }
+   }
+   return resultsHtml;
+}
 
 // Root directory for the website, taken from argv[ 2 ].
 // (Yes, a global variable since it never changes.)
@@ -426,14 +449,7 @@ void *Talk( void *talkSocket )
       for ( ; *p; ++p) *p = tolower(*p);
       vector<string> urls = getResults(query);
 
-      string resultsHtml;
-      for (int i = 0; i < urls.size(); ++i) {
-           // example
-         resultsHtml += (string)"<li><a href=\"" + urls[i] + 
-          (string)"\">" + urls[i] + (string)" </a></li>\n\n";
-         //resultsHtml += (string)"<li><a href=\"" + urls[i] + 
-         //(string)"\">Result " + to_string(i) + (string)" for '" + query + (string)"': "+ urls[i] + (string)" </a></li>\n";
-      }
+      string resultsHtml = StylizedResults(urls);
       
       // Replace {{results}} in template
       size_t resultsPos = templateHtml.find("{{results}}");
