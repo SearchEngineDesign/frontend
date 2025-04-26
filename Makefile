@@ -1,11 +1,11 @@
 # Compiler and Flags
 CXX = g++
 INCPATH = ../include
-CXXFLAGS = -Wall -O2 -std=c++17 -g -I$(INCPATH) -pthread
+CXXFLAGS = -Wall -O2 -std=c++17 -g -I$(INCPATH) -pthread 
 
 # Source Files
-SRC_FILES := $(shell find .. ! -name "runner.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
-
+SRC_FILES1 := $(shell find .. ! -name "runner.cpp" ! -name "indexserver.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
+SRC_FILES2 := $(shell find .. ! -name "runner.cpp" ! -name "server.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
 
 # Library Flags
 LDFLAGS = -L$(UTF8PROC_DIR) -Wl,-rpath,$(UTF8PROC_DIR) -lutf8proc -lssl -lcrypto
@@ -31,26 +31,32 @@ else
 	endif
 endif
 
-# Object Files
-OBJS = $(SRC_FILES:.cpp=.o)
-
 # Target Executable
-TARGET = server
+TARGET1 = server
+TARGET2 = indexserver
+
 
 # Default Target
-all: $(TARGET)
+all: $(TARGET1)
 
 # Build the target executable
-$(TARGET): $(OBJS)
+$(TARGET1): $(SRC_FILES1:.cpp=.o) 
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(RPATH_FLAG)
+
+# Build the target executable (index)
+$(TARGET2): $(SRC_FILES2:.cpp=.o) 
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(RPATH_FLAG)
 
 # Compile source files to object files
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+.PHONY: clean
+
 # Clean up build artifacts
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f  $(TARGET1) $(TARGET2)
+	rm $(SRC_FILES1:.cpp=.o) $(SRC_FILES2:.cpp=.o) 
 
 # Phony targets
 .PHONY: all clean

@@ -1,30 +1,16 @@
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <pthread.h>
-#include <semaphore.h>
-#include <fcntl.h>
-#include <iostream>
-#include <ctime>
+#include "serverUtils.h"
+#include <cpr/cpr.h>
 
-#include <cassert>
-#include <cf/searchstring.h>
-#include <cf/vec.h>
-#include "../dynamicRanker/driver.h"
-#include "../Crawler/crawler.h"
-
-
-#include "Plugin.h"
 PluginObject *Plugin = nullptr;
-const int npos = -1;
 
+ReaderWriterLock vec_lock;
+vector<string> out;
 
-string StylizedResults(vector<string> &urls) {
+string StylizedResults() {
+   WithWriteLock wl(vec_lock);
    string resultsHtml = "";
    Crawler c;
-   for (auto &url : urls) {
+   for (auto &url : out) {
       
       resultsHtml += string("<li><a href=\"") + url + string("\">");
       /*auto pUrl = ParsedUrl(url);
@@ -49,294 +35,118 @@ string StylizedResults(vector<string> &urls) {
 
 char *RootDirectory;
 
+const string talkport = "8080";
 
-//  Multipurpose Internet Mail Extensions (MIME) types
+//TODO: edit according to the actual IPs of running servers
+const int NUM_INDICES = 1;
+const string indexIPs[NUM_INDICES] = {
+   "127.0.0.1"
+};
 
-struct MimetypeMap
-   {
-   const char *Extension, *Mimetype;
-   };
+struct curlStruct {
+   string path;
+   string host; 
+   string port;
 
-const MimetypeMap MimeTable[ ] =
-   {
-   // List of some of the most common MIME types in sorted order.
-   // https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types
-   ".3g2",     "video/3gpp2",
-   ".3gp",     "video/3gpp",
-   ".7z",      "application/x-7z-compressed",
-   ".aac",     "audio/aac",
-   ".abw",     "application/x-abiword",
-   ".arc",     "application/octet-stream",
-   ".avi",     "video/x-msvideo",
-   ".azw",     "application/vnd.amazon.ebook",
-   ".bin",     "application/octet-stream",
-   ".bz",      "application/x-bzip",
-   ".bz2",     "application/x-bzip2",
-   ".csh",     "application/x-csh",
-   ".css",     "text/css",
-   ".csv",     "text/csv",
-   ".doc",     "application/msword",
-   ".docx",    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-   ".eot",     "application/vnd.ms-fontobject",
-   ".epub",    "application/epub+zip",
-   ".gif",     "image/gif",
-   ".htm",     "text/html",
-   ".html",    "text/html",
-   ".ico",     "image/x-icon",
-   ".ics",     "text/calendar",
-   ".jar",     "application/java-archive",
-   ".jpeg",    "image/jpeg",
-   ".jpg",     "image/jpeg",
-   ".js",      "application/javascript",
-   ".json",    "application/json",
-   ".mid",     "audio/midi",
-   ".midi",    "audio/midi",
-   ".mpeg",    "video/mpeg",
-   ".mpkg",    "application/vnd.apple.installer+xml",
-   ".odp",     "application/vnd.oasis.opendocument.presentation",
-   ".ods",     "application/vnd.oasis.opendocument.spreadsheet",
-   ".odt",     "application/vnd.oasis.opendocument.text",
-   ".oga",     "audio/ogg",
-   ".ogv",     "video/ogg",
-   ".ogx",     "application/ogg",
-   ".otf",     "font/otf",
-   ".pdf",     "application/pdf",
-   ".png",     "image/png",
-   ".ppt",     "application/vnd.ms-powerpoint",
-   ".pptx",    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-   ".rar",     "application/x-rar-compressed",
-   ".rtf",     "application/rtf",
-   ".sh",      "application/x-sh",
-   ".svg",     "image/svg+xml",
-   ".swf",     "application/x-shockwave-flash",
-   ".tar",     "application/x-tar",
-   ".tif",     "image/tiff",
-   ".tiff",    "image/tiff",
-   ".ts",      "application/typescript",
-   ".ttf",     "font/ttf",
-   ".vsd",     "application/vnd.visio",
-   ".wav",     "audio/x-wav",
-   ".weba",    "audio/webm",
-   ".webm",    "video/webm",
-   ".webp",    "image/webp",
-   ".woff",    "font/woff",
-   ".woff2",   "font/woff2",
-   ".xhtml",   "application/xhtml+xml",
-   ".xls",     "application/vnd.ms-excel",
-   ".xlsx",    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-   ".xml",     "application/xml",
-   ".xul",     "application/vnd.mozilla.xul+xml",
-   ".zip",     "application/zip"
-   };
-
-inline void reverse_string(string& str) 
-{
-if (str.empty()) return;
-size_t left = 0;
-size_t right = str.size() - 1;
-while (left < right) 
-   {
-      // Swap characters at left and right positions
-      char temp = str[left];
-      str[left] = str[right];
-      str[right] = temp;
-      // Move inward from both ends
-      ++left;
-      --right;
-   }
-}   
-
-string to_string(int n)
-   {
-   if (n == 0) return "0";
-   bool negative = n < 0;
-   string temp;
-   if (negative) n = -n;
-   while (n > 0) 
-      {
-      temp.push_back( (char)(n % 10 + '0') );
-      n /= 10;
+   // Custom copy assignment operator
+   curlStruct() = default;
+   curlStruct(const string &path_in, const string &h_in, const string &port_in) 
+            : path(path_in), host(h_in), port(port_in) {}
+   curlStruct& operator=(const curlStruct& other) {
+      if (this != &other) {
+         path = other.path;
+         host = other.host;
+         port = other.port;
       }
-   if (negative) 
-      temp.push_back('-');
-   reverse_string( temp );
-   return temp;
+      return *this;
    }
-   
+};
 
+void* getdata(void *args) {
+   curlStruct* cURL = static_cast<curlStruct*>(args);
+   addrinfo hints, *res;
+   memset(&hints, 0, sizeof hints);
+   hints.ai_family = AF_INET;
+   hints.ai_socktype = SOCK_STREAM;
 
-
-const char *Mimetype( const string filename )
-   {
-   // TO DO: if a matching a extentsion is found return the corresponding
-   // MIME type.
-
-   // Anything not matched is an "octet-stream", treated
-   // as an unknown binary, which can be downloaded.
-
-   size_t dotPos = filename.find_last_of('.');
-   if (dotPos != npos) {
-      string ext = filename.substr(dotPos);
-      // Binary search through MimeTable
-      int left = 0;
-      int right = sizeof(MimeTable) / sizeof(MimeTable[0]) - 1;
-
-      while (left <= right) {
-         int mid = (left + right) / 2;
-         int comp = strcmp(ext.c_str(), MimeTable[mid].Extension);
-         
-         if (comp == 0)
-            return MimeTable[mid].Mimetype;
-         else if (comp < 0)
-            right = mid - 1;
-         else
-            left = mid + 1;
-      }
-
-   }
-   return "application/octet-stream";
+   if (getaddrinfo(cURL->host.c_str(), cURL->port.c_str(), &hints, &res) != 0) {
+      std::cerr << "Error resolving hostname: " << cURL->host << std::endl;
+      return nullptr;
    }
 
-
-int HexLiteralCharacter( char c )
-   {
-   // If c contains the Ascii code for a hex character, return the
-   // binary value; otherwise, -1.
-
-   int i;
-
-   if ( '0' <= c && c <= '9' )
-      i = c - '0';
-   else
-      if ( 'a' <= c && c <= 'f' )
-         i = c - 'a' + 10;
-      else
-         if ( 'A' <= c && c <= 'F' )
-            i = c - 'A' + 10;
-         else
-            i = -1;
-
-   return i;
+   int sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
+   if (sock == -1) {
+      std::cerr << "Error creating socket" << std::endl;
+      return nullptr;
    }
 
-
-string UnencodeUrlEncoding( string &path )
-   {
-   // Unencode any %xx encodings of characters that can't be
-   // passed in a URL.
-
-   // (Unencoding can only shorten a string or leave it unchanged.
-   // It never gets longer.)
-
-   const char *start = path.c_str( ), *from = start;
-   string result;
-   char c, d;
-
-
-   while ( ( c = *from++ ) != 0 )
-      if ( c == '%' )
-         {
-         c = *from;
-         if ( c )
-            {
-            d = *++from;
-            if ( d )
-               {
-               int i, j;
-               i = HexLiteralCharacter( c );
-               j = HexLiteralCharacter( d );
-               if ( i >= 0 && j >= 0 )
-                  {
-                  from++;
-                  result += ( char )( i << 4 | j );
-                  }
-               else
-                  {
-                  // If the two characters following the %
-                  // aren't both hex digits, treat as
-                  // literal text.
-
-                  result += '%';
-                  from--;
-                  }
-               }
-            }
-         }
-      else
-         result += c;
-
-   return result;
+   if (connect(sock, res->ai_addr, res->ai_addrlen) == -1) {
+      std::cerr << "Error connecting to server" << std::endl;
+      close(sock);
+      freeaddrinfo(res);
+      return nullptr;
    }
 
+   string ss;
+   ss = string("GET ") + cURL->path + " HTTP/1.1\r\n" + 
+   "Host: " + cURL->host + "\r\n" +
+   "Connection: close\r\n\r\n";
 
-bool SafePath( const char *path )
-   {
-   // The path must start with a /.
-   if ( *path != '/' )
-      return false;
+   if (send(sock, ss.c_str(), ss.size(), 0) == -1) {
+      std::cerr << "Error sending request" << std::endl;
+      close(sock);
+      freeaddrinfo(res);
+      return nullptr;
+   }
 
-   // TO DO:  Return false for any path containing ..
-   // segments that attempt to go higher than the root
-   // directory for the website.
-   const char *p = path;
-   int depth = 0;
+   char buffer[4096];
+   std::string response;
+   int buf_size = 0;
+   ssize_t bytes_received;
+   while ((bytes_received = recv(sock, buffer, sizeof(buffer) - 1, 0)) > 0) {
+      buffer[bytes_received] = '\0';
+      response += buffer;
+      buf_size += bytes_received;
+   }
 
-   while (*p) {
-      if (p[0] == '.' && p[1] == '.' && (p[2] == '/' || p[2] == '\0')) {
-         depth--;
-         if (depth < 0)
-            return false;
-         p += 2;
-      }
-      else if (*p == '/') {
-         depth++;
-         p++;
-      }
-      else {
-         p++;
+   if (bytes_received == -1) {
+      std::cerr << "Error receiving data" << std::endl;
+   }
+
+   close(sock);
+   freeaddrinfo(res);
+   char *end = buffer + buf_size;
+   char *p = buffer;
+   char *start = nullptr;
+   bool inlink;
+   for (; p != end; p++) {
+      if (string(p, 4, end) == "http")
+         start = p;
+      if (*p == '\n' && start != nullptr) {
+         WithWriteLock wl(vec_lock);
+         out.push_back(string(start, p - start, end));
       }
    }
 
+   return nullptr;
+}
 
-   return true;
+void getServerResults(string query) {
+   vector<pthread_t> threads;
+   out.clear();
+   curlStruct argList[NUM_INDICES];
+   int i = 0;
+   for (auto &ip : indexIPs) {
+      const string path = string("/search?q=") + query;
+      pthread_t thread;
+      argList[i] = {path, ip, talkport};
+      pthread_create(&thread, nullptr, getdata, &argList[i]);
+      threads.push_back(thread);
+      i++;
    }
-
-
-
-
-off_t FileSize( int f )
-   {
-   // Return -1 for directories.
-
-   struct stat fileInfo;
-   fstat( f, &fileInfo );
-   if ( ( fileInfo.st_mode & S_IFMT ) == S_IFDIR )
-      return -1;
-   return fileInfo.st_size;
-   }
-
-
-void AccessDenied( int talkSocket )
-   {
-   const char accessDenied[ ] = "HTTP/1.1 403 Access Denied\r\n"
-         "Content-Length: 0\r\n"
-         "Connection: close\r\n\r\n";
-
-   std::cout << accessDenied;
-   send( talkSocket, accessDenied, sizeof( accessDenied ) - 1, 0 );
-   }
-
-   
-void FileNotFound( int talkSocket )
-   {
-   const char fileNotFound[ ] = "HTTP/1.1 404 Not Found\r\n"
-         "Content-Length: 0\r\n"
-         "Connection: close\r\n\r\n";
-
-   std::cout << fileNotFound;
-   send( talkSocket, fileNotFound, sizeof( fileNotFound ) - 1, 0 );
-   }
-
+   for (auto &t : threads)
+      pthread_join(t, nullptr);
+}
                
 void *Talk( void *talkSocket )
    {
@@ -451,8 +261,8 @@ void *Talk( void *talkSocket )
       for ( ; *p; ++p) *p = tolower(*p);
       
       auto start = std::clock();
-      vector<string> urls = getResults(query);
-      string resultsHtml = StylizedResults(urls);
+      getServerResults(query);
+      string resultsHtml = StylizedResults();
       double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
       
       // Replace {{results}} in template
