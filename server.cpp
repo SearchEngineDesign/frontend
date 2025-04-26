@@ -10,8 +10,8 @@
 #include <ctime>
 
 #include <cassert>
-#include "../utils/searchstring.h"
-#include "../utils/vector.h"
+#include <cf/searchstring.h>
+#include <cf/vec.h>
 #include "../dynamicRanker/driver.h"
 #include "../Crawler/crawler.h"
 
