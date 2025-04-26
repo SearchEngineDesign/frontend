@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <ctime>
-
+#include <time.h>
 #include <cassert>
 #include <cf/searchstring.h>
 #include <cf/vec.h>

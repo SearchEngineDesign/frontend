@@ -71,10 +71,7 @@ void *Talk( void *talkSocket )
                query[i] = ' ';
       }
 
-      vector<string> urls = getResults(query);
-      string buf;
-      for (auto &s : urls)
-         buf += s + "\n";
+      string buf = getResults(query);
 
       // Send HTTP response
       string header = (string)"HTTP/1.1 200 OK\r\n" +

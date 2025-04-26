@@ -4,15 +4,15 @@
 PluginObject *Plugin = nullptr;
 
 ReaderWriterLock vec_lock;
-vector<string> out;
+vector<Result> out;
 
 string StylizedResults() {
    WithWriteLock wl(vec_lock);
    string resultsHtml = "";
    Crawler c;
-   for (auto &url : out) {
+   for (auto &result : out) {
       
-      resultsHtml += string("<li><a href=\"") + url + string("\">");
+      resultsHtml += string("<li><a href=\"") + result.url + string("\">");
       /*auto pUrl = ParsedUrl(url);
       auto buffer = std::make_unique<char[]>(1000000);
       size_t pageSize = 0;
@@ -25,7 +25,7 @@ string StylizedResults() {
       } catch (std::runtime_error &e) {
          continue;
       }*/
-      resultsHtml += string("placeholder title</a><br>") + url + string("</li>\n\n");
+      resultsHtml += string("placeholder title</a><br>") + result.url + string("</li>\n\n");
    }
    return resultsHtml;
 }
@@ -38,9 +38,10 @@ char *RootDirectory;
 const string talkport = "8080";
 
 //TODO: edit according to the actual IPs of running servers
-const int NUM_INDICES = 1;
+const int NUM_INDICES = 2;
 const string indexIPs[NUM_INDICES] = {
-   "127.0.0.1"
+   "34.42.99.109",
+   "34.150.163.39"
 };
 
 struct curlStruct {
@@ -103,6 +104,7 @@ void* getdata(void *args) {
    std::string response;
    int buf_size = 0;
    ssize_t bytes_received;
+   auto start_t = std::clock();
    while ((bytes_received = recv(sock, buffer, sizeof(buffer) - 1, 0)) > 0) {
       buffer[bytes_received] = '\0';
       response += buffer;
@@ -111,20 +113,36 @@ void* getdata(void *args) {
 
    if (bytes_received == -1) {
       std::cerr << "Error receiving data" << std::endl;
+   } else {
+      std::cout << "recv: " << string(buffer) << std::endl;
    }
 
    close(sock);
    freeaddrinfo(res);
+
    char *end = buffer + buf_size;
    char *p = buffer;
    char *start = nullptr;
    bool inlink;
+   string url = "";
+   int score = 0;
+   std::unordered_set<size_t> seen;
    for (; p != end; p++) {
       if (string(p, 4, end) == "http")
          start = p;
+      if (*p == '\t' && start != nullptr) {
+         url = string(start, p - start, end);
+         start = p;
+      }
       if (*p == '\n' && start != nullptr) {
+         score = atoi(string(start, p - start, end).c_str());
          WithWriteLock wl(vec_lock);
-         out.push_back(string(start, p - start, end));
+         size_t hash = hashbasic(url.c_str());
+         if (seen.find(hash) == seen.end()) {
+            std::cout << url << std::endl;
+            out.push_back({score, url});
+            seen.insert(hash);
+         }
       }
    }
 
@@ -146,6 +164,7 @@ void getServerResults(string query) {
    }
    for (auto &t : threads)
       pthread_join(t, nullptr);
+   std::sort(out.begin(), out.end(), Driver::compareResults);
 }
                
 void *Talk( void *talkSocket )
@@ -423,7 +442,7 @@ int main( int argc, char **argv )
    // the client over the new talk socket that's created by Linux
    // when we accept the connection.
    while (true) {
-      std::cout << "waiting for accept..." << std::endl;
+      std::cout << "serving " << NUM_INDICES << " index servers at http://localhost:" << port << "/index.html" << std::endl;
       talkSocket = accept(listenSocket, (struct sockaddr *)&talkAddress, &talkAddressLength);
       if (talkSocket < 0) {
          std::cerr << "Failed to accept connection" << std::endl;
