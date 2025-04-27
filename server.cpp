@@ -5,6 +5,7 @@ PluginObject *Plugin = nullptr;
 
 ReaderWriterLock vec_lock;
 vector<Result> out;
+std::unordered_set<size_t> seen;
 
 string StylizedResults() {
    WithWriteLock wl(vec_lock);
@@ -38,10 +39,11 @@ char *RootDirectory;
 const string talkport = "8080";
 
 //TODO: edit according to the actual IPs of running servers
-const int NUM_INDICES = 2;
+const int NUM_INDICES = 3;
 const string indexIPs[NUM_INDICES] = {
-   "34.42.99.109",
-   "34.150.163.39"
+   "34.74.98.161",
+   "34.145.181.254",
+   "34.55.174.170"
    // "localhost"
 };
 
@@ -129,7 +131,6 @@ void* getdata(void *args) {
    bool inlink;
    string url = "";
    int score = 0;
-   std::unordered_set<size_t> seen;
    for (; p != end; p++) {
       if (string(p, 4, end) == "http")
          start = p;
@@ -155,6 +156,7 @@ void* getdata(void *args) {
 void getServerResults(string query) {
    vector<pthread_t> threads;
    out.clear();
+   seen.clear();
    curlStruct argList[NUM_INDICES];
    int i = 0;
    for (auto &ip : indexIPs) {
