@@ -40,8 +40,9 @@ const string talkport = "8080";
 //TODO: edit according to the actual IPs of running servers
 const int NUM_INDICES = 2;
 const string indexIPs[NUM_INDICES] = {
-   "34.42.99.109",
-   "34.150.163.39"
+   // "34.42.99.109",
+   // "34.150.163.39"
+   "localhost"
 };
 
 struct curlStruct {
@@ -71,6 +72,7 @@ void* getdata(void *args) {
    hints.ai_socktype = SOCK_STREAM;
 
    if (getaddrinfo(cURL->host.c_str(), cURL->port.c_str(), &hints, &res) != 0) {
+
       std::cerr << "Error resolving hostname: " << cURL->host << std::endl;
       return nullptr;
    }
@@ -82,6 +84,7 @@ void* getdata(void *args) {
    }
 
    if (connect(sock, res->ai_addr, res->ai_addrlen) == -1) {
+      perror("connect");
       std::cerr << "Error connecting to server" << std::endl;
       close(sock);
       freeaddrinfo(res);
@@ -227,12 +230,24 @@ void *Talk( void *talkSocket )
       size_t queryPos = path.find("?q=");
       string query;
       if (queryPos != npos) {
+          string decoded_query = "";
           query = path.substr(queryPos + 3);
-          for (int i = 0; i < query.size(); i++)
-            if(query[i] == '+')
-               query[i] = ' ';
-      }
-  
+          for (int i = 0; i < query.size(); i++){
+             if(query[i] == '+'){
+                decoded_query.push_back(' ');
+             } else if (query[i] == '%' && i + 2 < query.size()) {
+               // Decode %XX hex escape
+                string hex = query.substr(i + 1, 2);
+                char ch = static_cast<char>(strtol(hex.c_str(), nullptr, 16));
+                decoded_query.push_back(ch);
+                i += 2; 
+             } else {
+                decoded_query.push_back(query[i]);
+            }
+          }
+          query = decoded_query;
+       }
+      
       // Unencode %20 etc.
       // query = UnencodeUrlEncoding(query);
   
