@@ -5,7 +5,7 @@ CXXFLAGS = -Wall -O2 -std=c++17 -g -I$(INCPATH) -pthread
 
 # Source Files
 SRC_FILES1 := $(shell find .. ! -name "runner.cpp" ! -name "indexserver.cpp" ! -name "constructDataset.cpp" ! -name "driver.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
-SRC_FILES2 := $(shell find .. ! -name "runner.cpp" ! -name "server.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
+SRC_FILES2 := $(shell find .. ! -name "runner.cpp" ! -name "server.cpp" ! -name "constructDataset.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
 
 # Library Flags
 LDFLAGS = -L$(UTF8PROC_DIR) -Wl,-rpath,$(UTF8PROC_DIR) -lutf8proc -lssl -lcrypto
