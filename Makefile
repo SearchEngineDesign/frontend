@@ -4,7 +4,7 @@ INCPATH = ../include
 CXXFLAGS = -Wall -O2 -std=c++17 -g -I$(INCPATH) -pthread 
 
 # Source Files
-SRC_FILES1 := $(shell find .. ! -name "runner.cpp" ! -name "indexserver.cpp" ! -name "driver.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
+SRC_FILES1 := $(shell find .. ! -name "runner.cpp" ! -name "indexserver.cpp" ! -name "constructDataset.cpp" ! -name "driver.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
 SRC_FILES2 := $(shell find .. ! -name "runner.cpp" ! -name "server.cpp" ! -name "test.cpp" ! -name "rank.cpp" ! -name "testQueryCompiler.cpp" -name "*.cpp")
 
 # Library Flags

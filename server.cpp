@@ -39,12 +39,10 @@ char *RootDirectory;
 const string talkport = "8080";
 
 //TODO: edit according to the actual IPs of running servers
-const int NUM_INDICES = 3;
+const int NUM_INDICES = 2;
 const string indexIPs[NUM_INDICES] = {
-   "34.74.98.161",
-   "34.145.181.254",
-   "34.55.174.170"
-   // "localhost"
+   "104.198.65.42",
+   "34.42.99.109"
 };
 
 struct curlStruct {
