@@ -1,5 +1,4 @@
 #include "serverUtils.h"
-#include <cpr/cpr.h>
 
 PluginObject *Plugin = nullptr;
 
@@ -14,19 +13,33 @@ string StylizedResults() {
    for (auto &result : out) {
       
       resultsHtml += string("<li><a href=\"") + result.url + string("\">");
-      /*auto pUrl = ParsedUrl(url);
-      auto buffer = std::make_unique<char[]>(1000000);
-      size_t pageSize = 0;
-      try {
-         c.crawl(pUrl, buffer.get(), pageSize);
-         auto parser = std::make_unique<HtmlParser>(buffer.get(), pageSize);
-         for (int i = 0; i < parser->titleWords.size(); i++)
-            resultsHtml += parser->titleWords[i] + string(" ");
-         resultsHtml += string(" </a><br>") + url + string("</li>\n\n");
-      } catch (std::runtime_error &e) {
-         continue;
-      }*/
-      resultsHtml += string("placeholder title</a><br>") + result.url + string("</li>\n\n");
+      string ogUrl(result.url);
+      ParsedUrl pUrl(result.url);
+      string name = pUrl.Host;
+      char *c = result.url.at(0);
+      char *lastslash = c;
+      int slashcount = 0;
+      while (*c != '\0') {
+         if (*c == '/') {
+            lastslash = c;
+            slashcount++;
+         }
+         c++;
+      }
+      char *start = lastslash + 1;
+      if (slashcount > 2) {
+         bool space = false;
+         while (*lastslash != '\0') {
+            if (*lastslash == '-' || *lastslash == '_')
+               *lastslash = ' ';
+            lastslash++;
+         }
+         name += " - ";
+      }
+      name += string(start);
+
+      
+      resultsHtml += name + string("</a><br>") + ogUrl + string("</li>\n\n");
    }
    return resultsHtml;
 }
@@ -39,10 +52,18 @@ char *RootDirectory;
 const string talkport = "8080";
 
 //TODO: edit according to the actual IPs of running servers
-const int NUM_INDICES = 2;
+const int NUM_INDICES = 9;
 const string indexIPs[NUM_INDICES] = {
-   "104.198.65.42",
-   "34.42.99.109"
+   "34.148.120.151", //1
+   "34.42.99.109", //5
+   "34.9.150.32", //10
+   "34.150.138.4", //2
+   "104.198.65.42", //3
+   //"34.10.14.46", //4
+   "34.68.254.40", //6
+   "35.226.86.57", //7
+   "34.56.48.162", //8
+   "35.224.13.131" //9
 };
 
 struct curlStruct {
@@ -114,12 +135,6 @@ void* getdata(void *args) {
       buf_size += bytes_received;
    }
 
-   if (bytes_received == -1) {
-      std::cerr << "Error receiving data" << std::endl;
-   } else {
-      std::cout << "recv: " << string(buffer) << std::endl;
-   }
-
    close(sock);
    freeaddrinfo(res);
 
@@ -165,9 +180,13 @@ void getServerResults(string query) {
       threads.push_back(thread);
       i++;
    }
-   for (auto &t : threads)
+   for (auto &t : threads) {
       pthread_join(t, nullptr);
+      std::cout << "thread joined" << std::endl;
+   }
+      
    std::sort(out.begin(), out.end(), Driver::compareResults);
+   std::cout << "finished sorting results..." << std::endl;
 }
                
 void *Talk( void *talkSocket )
