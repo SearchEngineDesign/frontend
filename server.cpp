@@ -97,8 +97,9 @@ string StylizedResults() {
          }
          resultsHtml += string(name.c_str()) + string("</a><br>") + ogUrl + string("</li>\n\n");
       }
-
    }
+   resultsHtml += string("<li style='color:lightgray'><a href=\"https://media.istockphoto.com/id/926681406/photo/meadow-with-wildflowers-under-the-bright-sun.jpg?s=612x612&w=0&k=20&c=aLR1ZmFZkpniTxMXa-Fs5jqClGUDWO8agCYoWUxsudI=\">");
+   resultsHtml += string("you reached the end!") + string("</a></li>\n\n");
    return resultsHtml;
 }
 
@@ -358,21 +359,9 @@ void *Talk( void *talkSocket )
       // Replace {{query}} in template
       size_t queryPosInHtml = templateHtml.find("{{query}}");
       if (queryPosInHtml != npos) {
-         string newquery = "";
-         const char * c = query.c_str();
-         const char * end = query.c_str() + query.length();
-         while (*c != '\0') {
-            if (string(c, 3, end) == "%22") {
-               newquery += '"';
-               c += 3;
-            } else {
-               newquery += *c;
-               c++;
-            }
-         }
           string before = templateHtml.substr(0, queryPosInHtml);
           string after = templateHtml.substr(queryPosInHtml + 9, templateHtml.size() - (queryPosInHtml + 9)); // 9 is length of {{query}}
-          templateHtml = before + newquery + after;
+          templateHtml = before + query + after;
           //templateHtml.replace(queryPosInHtml, 9, query);
       }
 

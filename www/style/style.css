@@ -45,7 +45,7 @@ button:hover {
 }
 
 .left {
-  float: left;
+  float: right;
   max-width: 35%;
   padding: 20px;
   background-color: white;
@@ -55,14 +55,16 @@ button:hover {
   word-break: break-all;
 }
 
-.right {
-  float: right;
-  max-width: 60%;
+.leftfix {
+  float: left;
+  max-width: 35%;
   padding: 20px;
   background-color: white;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  margin-left: 1rem;
+  margin-right: 1rem;
+  word-break: break-all;
+  position: fixed;
 }
 
 li {
