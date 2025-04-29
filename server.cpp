@@ -15,31 +15,59 @@ string StylizedResults() {
       resultsHtml += string("<li><a href=\"") + result.url + string("\">");
       string ogUrl(result.url);
       ParsedUrl pUrl(result.url);
-      string name = pUrl.Host;
+      std::string name = pUrl.Host.c_str();
       char *c = result.url.at(0);
       char *lastslash = c;
       int slashcount = 0;
       while (*c != '\0') {
-         if (*c == '/') {
+         if (*c == '/' && *(c+1) != '\0') {
             lastslash = c;
             slashcount++;
          }
          c++;
       }
-      char *start = lastslash + 1;
-      if (slashcount > 2) {
+      const char * end = lastslash + pUrl.Path.size();
+      lastslash++;
+      if (pUrl.Path.size() > 2) {
+         name += " - ";
          bool space = false;
          while (*lastslash != '\0') {
             if (*lastslash == '-' || *lastslash == '_')
-               *lastslash = ' ';
+               name += " ";
+            else if (*lastslash == '%') {
+               const char *start = lastslash;
+               string perc(start, 3, end);
+               if (perc == "%27")
+                  name += "'";
+               else if (perc == "%21")
+                  name += "!";
+               else if (perc == "%23")
+                  name += ": ";
+               else if (perc == "%26")
+                  name += ": ";
+               else if (perc == "%29")
+                  name += ")";
+               else if (perc == "%28")
+                  name += "(";
+               else if (perc == "%2B")
+                  name += " ";
+               else if (perc == "%2F")
+                  name += " ";
+               else if (perc == "%3F")
+                  name += ": ";
+               else if (perc == "%3D")
+                  name += " ";
+               lastslash += perc.size() - 1;
+            } else if (*lastslash == '.')
+               break;
+            else 
+               name.append(1, *lastslash);
             lastslash++;
          }
-         name += " - ";
       }
-      name += string(start);
 
       
-      resultsHtml += name + string("</a><br>") + ogUrl + string("</li>\n\n");
+      resultsHtml += string(name.c_str()) + string("</a><br>") + ogUrl + string("</li>\n\n");
    }
    return resultsHtml;
 }
