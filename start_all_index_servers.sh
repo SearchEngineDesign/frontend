@@ -3,7 +3,7 @@
 
 
 # ./run_index_server.sh"
-COMMAND="cd ../tkmaher/searchengine/frontend && ./run_indexserver.sh" 
+COMMAND="cd ../tkmaher/searchengine/frontend && pkill -f run_index_server.sh && ./run_indexserver.sh" 
 project_id="decent-decker-456116-p8"
 
 
