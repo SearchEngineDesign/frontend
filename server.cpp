@@ -35,63 +35,69 @@ string StylizedResults() {
    string resultsHtml = "";
    Crawler c;
    for (auto &result : out) {
-      
-      resultsHtml += string("<li><a href=\"") + result.url + string("\">");
-      string ogUrl(result.url);
-      ParsedUrl pUrl(result.url);
-      std::string name = pUrl.Host.c_str();
-      char *c = result.url.at(0);
-      char *lastslash = c;
-      int slashcount = 0;
-      while (*c != '\0') {
-         if (*c == '/' && *(c+1) != '\0') {
-            lastslash = c;
-            slashcount++;
+      if (!get404(result.url)) {
+         resultsHtml += string("<li><a href=\"") + result.url + string("\">");
+         string ogUrl(result.url);
+         ParsedUrl pUrl(result.url);
+         std::string name = pUrl.Host.c_str();
+         char *c = result.url.at(0);
+         char *lastslash = c;
+         int slashcount = 0;
+         while (*c != '\0') {
+            if (*c == '/' && *(c+1) != '\0') {
+               lastslash = c;
+               slashcount++;
+            }
+            c++;
          }
-         c++;
-      }
-      const char * end = lastslash + pUrl.Path.size();
-      lastslash++;
-      if (pUrl.Path.size() > 2) {
-         name += " - ";
-         bool space = false;
-         while (*lastslash != '\0') {
-            if (*lastslash == '-' || *lastslash == '_')
-               name += " ";
-            else if (*lastslash == '%') {
-               const char *start = lastslash;
-               string perc(start, 3, end);
-               if (perc == "%27")
-                  name += "'";
-               else if (perc == "%21")
-                  name += "!";
-               else if (perc == "%23")
-                  name += ": ";
-               else if (perc == "%26")
-                  name += ": ";
-               else if (perc == "%29")
-                  name += ")";
-               else if (perc == "%28")
-                  name += "(";
-               else if (perc == "%2B")
+         const char * end = lastslash + pUrl.Path.size();
+         lastslash++;
+         if (pUrl.Path.size() > 2) {
+            name += " - ";
+            bool space = false;
+            while (*lastslash != '\0') {
+               if (*lastslash == '-' || *lastslash == '_')
                   name += " ";
-               else if (perc == "%2F")
+               else if (*lastslash == '%') {
+                  const char *start = lastslash;
+                  string perc(start, 3, end);
+                  if (perc == "%27")
+                     name += "'";
+                  else if (perc == "%21")
+                     name += "!";
+                  else if (perc == "%23")
+                     name += ": ";
+                  else if (perc == "%26")
+                     name += ": ";
+                  else if (perc == "%29")
+                     name += ")";
+                  else if (perc == "%28")
+                     name += "(";
+                  else if (perc == "%2B")
+                     name += " ";
+                  else if (perc == "%2F")
+                     name += " ";
+                  else if (perc == "%3F")
+                     name += ": ";
+                  else if (perc == "%3D")
+                     name += " ";
+                  lastslash += perc.size() - 1;
+               } else if (*lastslash == '.')
+                  break;
+               else if (name.at(name.length() - 1) == ' ' && !isupper(*lastslash))
+                  name += toupper(*lastslash);
+               else if (name.at(name.length() - 1) != ' ' && isupper(*lastslash) && isupper(*lastslash - 1)) {
                   name += " ";
-               else if (perc == "%3F")
-                  name += ": ";
-               else if (perc == "%3D")
-                  name += " ";
-               lastslash += perc.size() - 1;
-            } else if (*lastslash == '.')
-               break;
-            else 
-               name.append(1, *lastslash);
-            lastslash++;
+                  name.append(1, *lastslash);
+               }
+               else 
+                  name.append(1, *lastslash);
+               lastslash++;
+            }
          }
+         resultsHtml += string(name.c_str()) + string("</a><br>") + ogUrl + string("</li>\n\n");
       }
 
-      
-      resultsHtml += string(name.c_str()) + string("</a><br>") + ogUrl + string("</li>\n\n");
    }
    return resultsHtml;
 }
@@ -206,6 +212,8 @@ void* getdata(void *args) {
       if (*p == '\n' && start != nullptr) {
          score = atoi(string(start, p - start, end).c_str());
          WithWriteLock wl(vec_lock);
+         if (url[url.length() - 1] == '/')
+            url = url.substr(0, url.size() - 2);
          size_t hash = hashbasic(url.c_str());
          if (seen.find(hash) == seen.end()) {
             std::cout << url << std::endl;
@@ -350,9 +358,21 @@ void *Talk( void *talkSocket )
       // Replace {{query}} in template
       size_t queryPosInHtml = templateHtml.find("{{query}}");
       if (queryPosInHtml != npos) {
+         string newquery = "";
+         const char * c = query.c_str();
+         const char * end = query.c_str() + query.length();
+         while (*c != '\0') {
+            if (string(c, 3, end) == "%22") {
+               newquery += '"';
+               c += 3;
+            } else {
+               newquery += *c;
+               c++;
+            }
+         }
           string before = templateHtml.substr(0, queryPosInHtml);
           string after = templateHtml.substr(queryPosInHtml + 9, templateHtml.size() - (queryPosInHtml + 9)); // 9 is length of {{query}}
-          templateHtml = before + query + after;
+          templateHtml = before + newquery + after;
           //templateHtml.replace(queryPosInHtml, 9, query);
       }
 
@@ -365,17 +385,18 @@ void *Talk( void *talkSocket )
       char * p = query.c_str();
       for ( ; *p; ++p) *p = tolower(*p);
       std::cout << "query in server: " << query << std::endl;
-      auto start = std::clock();
+      auto start = std::chrono::steady_clock::now();
       getServerResults(query);
       string resultsHtml = StylizedResults();
-      double duration = ( std::clock() - start ) / (double) CLOCKS_PER_SEC;
+      auto end = std::chrono::steady_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
       
       // Replace {{results}} in template
       size_t resultsPos = templateHtml.find("{{results}}");
       if (resultsPos != npos) {
           string before = templateHtml.substr(0, resultsPos);
           string after = templateHtml.substr(resultsPos + 11, templateHtml.size() - (resultsPos + 11)); // 11 is length of {{results}}
-          templateHtml = before + string(std::to_string(duration).c_str()) + string(" seconds taken.") + resultsHtml + after;
+          templateHtml = before + string("Returned ") + std::to_string(out.size()).c_str() + string(" results in ") + std::to_string(duration).c_str() + string(" seconds.") + resultsHtml + after;
           //templateHtml.replace(resultsPos, 11, resultsHtml);
       }
       // Send HTTP response
