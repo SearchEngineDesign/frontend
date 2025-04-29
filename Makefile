@@ -46,7 +46,7 @@ all: $(TARGET1)
 
 # Build the target executable
 $(TARGET1): $(SRC_FILES1:.cpp=.o)
-	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) $(RPATH_FLAG)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LDFLAGS) -lcurl $(RPATH_FLAG)
 
 # Build the target executable (index)
 $(TARGET2): $(SRC_FILES2:.cpp=.o)

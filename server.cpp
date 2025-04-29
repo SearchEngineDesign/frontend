@@ -1,10 +1,34 @@
 #include "serverUtils.h"
+#include <curl/curl.h>
 
 PluginObject *Plugin = nullptr;
 
 ReaderWriterLock vec_lock;
 vector<Result> out;
 std::unordered_set<size_t> seen;
+
+bool get404(string &url) {
+   CURL *curl;
+   CURLcode res;
+   long http_code = 0;
+
+   curl = curl_easy_init();
+   if (curl) {
+      curl_easy_setopt(curl, CURLOPT_URL, "your_website_url");
+      curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+      res = curl_easy_perform(curl);
+
+      if (res == CURLE_OK) {
+         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
+         if (http_code == 404)
+            return false;
+      } else {
+         return false;
+      }
+      curl_easy_cleanup(curl);
+   }
+   return true;
+}
 
 string StylizedResults() {
    WithWriteLock wl(vec_lock);
