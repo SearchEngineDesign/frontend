@@ -249,22 +249,22 @@ void *Talk( void *talkSocket )
       size_t queryPos = path.find("?q=");
       string query;
       if (queryPos != npos) {
-          string decoded_query = "";
+         //  string decoded_query = "";
           query = path.substr(queryPos + 3);
-          for (int i = 0; i < query.size(); i++){
-             if(query[i] == '+'){
-                decoded_query.push_back(' ');
-             } else if (query[i] == '%' && i + 2 < query.size()) {
-               // Decode %XX hex escape
-                string hex = query.substr(i + 1, 2);
-                char ch = static_cast<char>(strtol(hex.c_str(), nullptr, 16));
-                decoded_query.push_back(ch);
-                i += 2; 
-             } else {
-                decoded_query.push_back(query[i]);
-            }
-          }
-          query = decoded_query;
+         //  for (int i = 0; i < query.size(); i++){
+         //     if(query[i] == '+'){
+         //        decoded_query.push_back(' ');
+         //     } else if (query[i] == '%' && i + 2 < query.size()) {
+         //       // Decode %XX hex escape
+         //        string hex = query.substr(i + 1, 2);
+         //        char ch = static_cast<char>(strtol(hex.c_str(), nullptr, 16));
+         //        decoded_query.push_back(ch);
+         //        i += 2; 
+         //     } else {
+         //        decoded_query.push_back(query[i]);
+         //    }
+         //  }
+         //  query = decoded_query;
        }
       
       // Unencode %20 etc.
@@ -312,7 +312,7 @@ void *Talk( void *talkSocket )
       // title? 
       char * p = query.c_str();
       for ( ; *p; ++p) *p = tolower(*p);
-      
+      std::cout << "query in server: " << query << std::endl;
       auto start = std::clock();
       getServerResults(query);
       string resultsHtml = StylizedResults();
