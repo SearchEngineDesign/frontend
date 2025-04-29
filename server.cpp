@@ -36,7 +36,7 @@ string StylizedResults() {
    Crawler c;
    for (auto &result : out) {
       if (!get404(result.url)) {
-         resultsHtml += string("<li><a href=\"") + result.url + string("\">");
+         resultsHtml += string("<li><a href=\"") + result.url + string("\" target=\"_blank\">");
          string ogUrl(result.url);
          ParsedUrl pUrl(result.url);
          std::string name = pUrl.Host.c_str();
